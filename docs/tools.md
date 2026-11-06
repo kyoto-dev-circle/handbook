@@ -2,7 +2,7 @@
 
 Kyoto Dev Circle で使っているツール・ライブラリ・設定の説明です。「これ何だっけ？」と思ったときに見てください。
 
-- 新しいツールを入れたら、Claude が追記します。気づいたことやつまずいたことがあれば、Slack で長谷川に伝えてください。
+- 新しいツールを入れたら、Claude が追記します。
 - バージョンは、そのツールを入れたときのものです。今のバージョンは、各リポジトリの package.json で確かめてください。
 - Git・GitHub・VS Code・Slack など Phase 0 で覚えた道具の使い方は、[Git/GitHub はじめてガイド](https://github.com/kyoto-dev-circle/self-intro/blob/main/docs/git-guide.md) を見てください。
 
@@ -70,10 +70,6 @@ Node.js と一緒に入る、**ツールやライブラリを管理する道具*
 | `npm run` | 使えるコマンド（scripts）の一覧を表示する |
 | `npm run 名前` | scripts に書いたコマンドを実行する（例：`npm run dev`） |
 
-**つまずいたこと**
-
-- `npm error Missing script: "lint"`：package.json の `"scripts"` に `lint` を書いていない、または保存していない。`npm run` で一覧を出して確かめる。
-
 **最初に使った場所**：mini-games #1
 
 ---
@@ -107,11 +103,6 @@ Node.js と一緒に入る、**ツールやライブラリを管理する道具*
 | `npm run dev` | 開発用サーバーを起動する。`http://localhost:5173/mini-games/` を開く。止めるときはターミナルで **Ctrl + C** |
 | `npm run build` | `dist/` に公開用のファイルを作る |
 | `npm run preview` | ビルドした `dist/` を、公開したときと同じ形で確かめる |
-
-**つまずいたこと**
-
-- Vite 8 の見本（Vanilla）では、見本の画像が `public/` ではなく `src/assets/` に入る。見本を消すときは `src/assets/` ごと消す。
-- `npm run build` が `UNRESOLVED_IMPORT` で失敗した：main.js を保存していなかった。エディターで変えても、**Ctrl + S で保存しないとファイルは変わらない**（タブの ● は未保存の印）。
 
 **最初に使った場所**：mini-games #1（バージョン 8.3.6）
 
@@ -246,6 +237,8 @@ ESLint 9 から、設定ファイルが `eslint.config.js`（flat config とい�
 | `editor.defaultFormatter` | 整形に Prettier の拡張機能を使う |
 | `editor.formatOnSave` | **Ctrl + S で保存したときに自動で整形する** |
 
+Vite が作った `.gitignore` には `.vscode/*`（.vscode フォルダを Git に入れない）が書かれています。そこに `!.vscode/settings.json`（先頭の `!` は「これは無視しない」）を足して、settings.json だけはコミットされるようにしています。
+
 **入れておく拡張機能**（VS Code 左の「拡張機能」で検索してインストール）
 
 | 拡張機能 | 役割 |
@@ -253,9 +246,5 @@ ESLint 9 から、設定ファイルが `eslint.config.js`（flat config とい�
 | Prettier - Code formatter | 保存したときの自動整形に使う |
 | ESLint | ESLint の指摘を、エディターの中で波線で表示する（`npm run lint` を実行しなくても分かる） |
 | GitHub Pull Requests | VS Code から PR を出したり見たりする（Phase 0 で導入） |
-
-**つまずいたこと**
-
-- Vite が作った `.gitignore` に `.vscode/*` が書かれていて、settings.json がコミットされなかった。`.gitignore` に `!.vscode/settings.json`（先頭の `!` は「これは無視しない」）を足して解決した。
 
 **最初に使った場所**：mini-games #2
