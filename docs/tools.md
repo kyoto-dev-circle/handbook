@@ -4,7 +4,7 @@ Kyoto Dev Circle で使っているツール・ライブラリ・設定の説明
 
 - 新しいツールを入れたら、Claude が追記します。
 - バージョンは、そのツールを入れたときのものです。今のバージョンは、各リポジトリの package.json で確かめてください。
-- Git・GitHub・VS Code・Slack など Phase 0 で覚えた道具の使い方は、[Git/GitHub はじめてガイド](https://github.com/kyoto-dev-circle/self-intro/blob/main/docs/git-guide.md) を見てください。
+- Git・GitHub・VS Code・Slack など Phase 0 で覚えた道具の使い方は、[Git/GitHub はじめてガイド](https://github.com/kyoto-dev-circle/self-intro/blob/main/docs/git-guide.md) を見てください。commit・push・PR がそれぞれ何をしているのかは [Git・GitHub のしくみ](git-basics.md) にあります。
 - 初めて読むときは、先に [全体の地図](#全体の地図) を読むと、ツール同士のつながりが分かります。
 
 ## 目次
