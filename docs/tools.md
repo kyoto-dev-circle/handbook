@@ -17,6 +17,7 @@ Kyoto Dev Circle で使っているツール・ライブラリ・設定の説明
 | [Prettier](#prettier) | コードの見た目を自動でそろえる | mini-games #2 |
 | [VS Code の設定と拡張機能](#vs-code-の設定と拡張機能) | 保存したときの自動整形、エラーの表示 | mini-games #2 |
 | [Vitest](#vitest) | ロジックが正しく動くかを自動で確かめる（単体テスト） | mini-games #3 |
+| [GitHub Actions](#github-actions) | PR ごとに lint・テスト・ビルドを GitHub 上で自動で実行する（CI） | mini-games #4 |
 
 ---
 
@@ -254,6 +255,13 @@ Vite が作った `.gitignore` には `.vscode/*`（.vscode フォルダを Git 
 - 直し方：`npm run format` を実行する。または VS Code の右下の `CRLF` を押して `LF` を選ぶ
 - 防ぎ方：拡張機能「Prettier - Code formatter」を入れておく（保存したときに LF に直る）
 
+clone や pull をしただけで、ほとんど全部のファイルに `[warn]` が出るときは、Git が取り出すときに CRLF に変えています（Git for Windows の設定 `core.autocrlf` が `true`）。mini-games #4 でノートPC に起きました。
+
+1. 確かめる：`git ls-files --eol src/main.js` で `w/crlf`（手元が CRLF）と出る
+2. Git の設定を変える：`git config --global core.autocrlf input`（取り出すときに CRLF に変えない）
+3. `npm run format` で LF に直す
+4. `git status` で modified が並んでいても、`git diff` が何も出さなければ中身は同じ。`git restore .` で消える
+
 **最初に使った場所**：mini-games #2
 
 ---
@@ -321,3 +329,78 @@ AssertionError: expected 3 to be 4
 ```
 
 **最初に使った場所**：mini-games #3（バージョン 5.1.0）
+
+---
+
+## GitHub Actions
+
+**何をするものか**
+GitHub が用意したパソコン（Linux）で、決めておいたコマンドを自動で実行してくれる仕組みです。「PR が出されたとき」「main に push されたとき」などのきっかけを決めて、その手順を YAML ファイルに書きます。
+
+- **CI**（継続的インテグレーション）：PR を出すたびに、lint・テストなどを自動で実行して、壊れていないかを確かめること
+- **CD**（継続的デリバリー）：main にマージするたびに、自動で公開すること（mini-games #5 で作る）
+
+**なぜ入れたか**
+手元でチェックを打ち忘れても、PR の時点で必ず同じチェックが走るようにするため。チェックが失敗した PR は、ルールセットの設定でマージできなくしている。
+
+**関係するファイル**：`.github/workflows/ci.yml`（`.github/workflows/` に置いた YAML ファイルが、自動で読み込まれる）
+
+```yaml
+# PR を出したとき・PR に push したときに、自動でチェックを動かす
+name: CI
+
+on:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. リポジトリのファイルを取ってくる
+      - uses: actions/checkout@v7
+
+      # 2. Node.js を準備する（npm のダウンロードをキャッシュして速くする）
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+
+      # 3. package-lock.json のとおりにインストールする
+      - run: npm ci
+
+      # 4. チェックを順番に実行する（1つでも失敗したら、そこで止まって赤になる）
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm test
+      - run: npm run build
+```
+
+| 書き方 | 意味 |
+| --- | --- |
+| `name: CI` | ワークフローの名前。PR の画面や「Actions」タブに出る |
+| `on: pull_request` | いつ動くか。PR を出したとき・PR に push したとき |
+| `jobs:` の下の `check` | ジョブ（ひとまとまりの仕事）の名前。**ルールセットで必須にするチェックの名前になる** |
+| `runs-on: ubuntu-latest` | どのパソコンで動かすか（GitHub が用意した Linux） |
+| `steps:` | 上から順番に実行する手順 |
+| `uses:` | ほかの人が作った部品（アクション）を使う。`@v7` はバージョン |
+| `run:` | コマンドを実行する |
+| `node-version: 26` | 使う Node.js の大きいバージョン。2人の PC と同じにする |
+
+YAML は字下げ（半角スペース2つ）で入れ子を表します。字下げがずれると動きません。Prettier が YAML も整形してくれます。
+
+**結果の見方**
+
+- PR の画面の下に「CI / check」が出る。黄色い丸は実行中、緑のチェックは成功、赤のバツは失敗
+- 「Details」を押すと、ステップごとのログが見られる。リポジトリ上の「Actions」タブからも見られる
+- 赤のバツになったら、ログで失敗したステップ（例：`Run npm run lint`）を開き、エラーを読んで手元で直し、もう一度 push する。push するとチェックがやり直される
+
+**ルールセットとの関係**
+mini-games の protect-main で「Require status checks to pass」をオンにし、`check` を必須にしています。`check` が成功していない PR は、Approve があってもマージできません。チェックの名前は、ワークフローが一度動いた後でないと選べません。
+
+**つまずいたこと（mini-games #4）**
+
+- 間違った名前（`feature`）でブランチを作ってしまった。そのブランチにいる状態で `git branch -m feature/#4-ci` を打つと名前を変えられる（VS Code ではコマンドパレットの「Git: ブランチの名前変更...」）
+- ノートPC で、ほとんど全部のファイルが `format:check` で引っかかった。原因は改行コード（上の「VS Code の設定と拡張機能」の改行コード）
+- Approve の後に新しいコミットを push すると、承認が取り消される（ルールセットの設定）。もう一度 Approve してもらう
+
+**最初に使った場所**：mini-games #4（actions/checkout v7、actions/setup-node v7、Node.js 26）
