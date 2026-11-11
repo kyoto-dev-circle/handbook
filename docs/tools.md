@@ -5,6 +5,7 @@ Kyoto Dev Circle で使っているツール・ライブラリ・設定の説明
 - 新しいツールを入れたら、Claude が追記します。
 - バージョンは、そのツールを入れたときのものです。今のバージョンは、各リポジトリの package.json で確かめてください。
 - Git・GitHub・VS Code・Slack など Phase 0 で覚えた道具の使い方は、[Git/GitHub はじめてガイド](https://github.com/kyoto-dev-circle/self-intro/blob/main/docs/git-guide.md) を見てください。
+- 初めて読むときは、先に [全体の地図](#全体の地図) を読むと、ツール同士のつながりが分かります。
 
 ## 目次
 
@@ -15,17 +16,68 @@ Kyoto Dev Circle で使っているツール・ライブラリ・設定の説明
 | [Vite](#vite) | 開発用サーバーと、公開用のビルド | mini-games #1 |
 | [ESLint](#eslint) | バグになりやすい書き方を指摘する | mini-games #2 |
 | [Prettier](#prettier) | コードの見た目を自動でそろえる | mini-games #2 |
-| [VS Code の設定と拡張機能](#vs-code-の設定と拡張機能) | 保存したときの自動整形、エラーの表示 | mini-games #2 |
+| [VS Code の設定と拡張機能](#vs-code-の設定と拡張機能) | 保存したときの自動整形、エラーの表示、本体（npm）と拡張機能の関係 | mini-games #2 |
 | [Vitest](#vitest) | ロジックが正しく動くかを自動で確かめる（単体テスト） | mini-games #3 |
 | [GitHub Actions](#github-actions) | PR ごとに lint・テスト・ビルドを GitHub 上で自動で実行する（CI） | mini-games #4 |
 | [GitHub Pages](#github-pages) | main にマージすると、サイトを自動で公開する（CD） | mini-games #5 |
 
 ---
 
+## 全体の地図
+
+### 先に知っておく言葉
+
+| 言葉 | 意味 |
+| --- | --- |
+| ブラウザ | Chrome や Edge のこと。Web ページを表示し、ページの中の JavaScript を動かす。自分の PC の中で動いている |
+| パッケージ | だれかが作って公開しているツールやプログラムの部品。npm で入れる。Vite・ESLint・Prettier・Vitest もパッケージ |
+| サーバー | ほかの人からのアクセスにこたえて、ファイルを送ったりプログラムを動かしたりするコンピュータ |
+| 本体と拡張機能 | ESLint と Prettier には、npm で入れる**本体**と、VS Code に入れる**拡張機能**の2つがある。くわしくは [本体（npm）と拡張機能の関係](#本体npmと拡張機能の関係) |
+
+### ツールがどこで働くか
+
+```
+【自分の PC】
+  VS Code でコードを書く
+    └ 拡張機能が、書いている最中に問題を波線で教え（ESLint）、保存したときに見た目を整える（Prettier）
+        │
+  ターミナルで確かめる
+    └ npm run dev（Vite で画面を見る）／npm run lint（ESLint）／npm run format:check（Prettier）／npm test（Vitest）
+        │ git push して PR を出す
+        ▼
+【GitHub】
+  PR ──→ GitHub Actions が CI を自動で実行（lint・format:check・test・build）。赤ならマージできない
+        │ Approve されてマージ
+        ▼
+  main ──→ GitHub Actions が Deploy を自動で実行（Vite でビルド → GitHub Pages に公開）
+        │
+        ▼
+【インターネット】
+  https://kyoto-dev-circle.github.io/mini-games/ をだれでも見られる
+```
+
+この全部を下で支えているのが **Node.js** と **npm** です。Vite・ESLint・Prettier・Vitest は JavaScript で作られたツールで、npm で入れて、Node.js の上で動きます。
+
+---
+
 ## Node.js
 
 **何をするものか**
-JavaScript を、ブラウザの外（自分の PC）で動かすためのソフトウェアです。JavaScript はもともとブラウザの中で動く言語ですが、Node.js があると、ターミナルから JavaScript のプログラムを実行できます。Vite・ESLint・Prettier などの開発用ツールも、JavaScript で作られていて Node.js の上で動いています。
+JavaScript を、**ブラウザがなくても**動かせるようにするソフトウェアです。
+
+JavaScript も Python と同じように自分の PC の中で動きます。違うのは、もともと動く場所が**ブラウザの中**だという点です。
+
+| 言語 | どこで動くか |
+| --- | --- |
+| Python | Python を入れると、ターミナルで `python ファイル名.py` と打って動かせる |
+| JavaScript | ブラウザに JavaScript を動かす仕組みが入っていて、Web ページを開くとブラウザが動かす。Node.js を入れると、Python と同じようにターミナルで `node ファイル名.js` と打って動かせる |
+
+Vite・ESLint・Prettier などの開発用ツールも、JavaScript で作られていて Node.js の上で動いています。
+
+**よくある疑問**
+
+- **ミニゲームは Node.js で動いているの？**
+  いいえ。ゲームは遊ぶ人の**ブラウザ**で動きます。Node.js は、開発の道具（Vite・ESLint など）を動かすために使っています。公開したサイトを見る人は、Node.js を入れなくても遊べます。
 
 **なぜ入れたか**
 このあとのツール（npm・Vite・ESLint など）を動かす土台として必要なため。
@@ -50,6 +102,8 @@ Node.js と一緒に入る、**ツールやライブラリを管理する道具*
 
 1. **インストール**：世界中の人が公開しているツール（パッケージ）を、プロジェクトに入れる
 2. **コマンドの実行**：package.json に書いた「よく使うコマンド」を短い名前で実行する
+
+たとえると、スマホのアプリストアと、ホーム画面のショートカットを合わせたようなものです。`npm install` でツールを入れ、`npm run lint` のような短い名前でツールを動かします。
 
 **関係するファイル**
 
@@ -85,6 +139,13 @@ Node.js と一緒に入る、**ツールやライブラリを管理する道具*
 1. **開発用サーバー**（`npm run dev`）：自分の PC の中で、作っているページをブラウザで見られるようにする。ファイルを保存すると、ブラウザの表示がすぐ変わる
 2. **ビルド**（`npm run build`）：公開用に、ファイルをまとめて小さくし、`dist/` フォルダに出力する
 
+**よくある疑問**
+
+- **Vite がサイトを作ってくれるの？**
+  いいえ。サイトの中身（HTML・CSS・JavaScript）を書くのは自分たちです。Vite は、書いたものを**開発中に見せる係**と、**公開用に仕上げる係**です。
+- **`npm run dev` で出る URL を相方に送れば、相方も見られる？**
+  いいえ。`localhost` は「この PC 自身」という意味なので、自分の PC でしか開けません。ほかの人に見せるのは [GitHub Pages](#github-pages) の公開URLです。
+
 **なぜ入れたか**
 ファイルを保存するたびにブラウザで確認でき、公開用のファイルも1つのコマンドで作れるため。
 
@@ -118,6 +179,9 @@ Node.js と一緒に入る、**ツールやライブラリを管理する道具*
 
 - 作ったのに一度も使っていない変数（`no-unused-vars`）
 - どこにも定義されていないものを使っている（`no-undef`）
+
+**本体と拡張機能**
+ESLint には、npm で入れる**本体**と、VS Code の**拡張機能**「ESLint」があります。チェックをするのは本体で、拡張機能は本体の結果を編集画面に波線で表示する係です。拡張機能の中に本体は入っていないので、`npm install` をしていないと波線は出ません。くわしくは [本体（npm）と拡張機能の関係](#本体npmと拡張機能の関係)。
 
 **なぜ入れたか**
 人が見落としやすいミスを、レビューの前に機械で見つけるため。#4 の CI（自動チェック）でも使う。
@@ -197,6 +261,9 @@ ESLint 9 から、設定ファイルが `eslint.config.js`（flat config とい�
 | 見るもの | 中身（バグになりそうか） | 見た目（書き方のそろい方） |
 | 直すか | 教えてくれる（自分で直す） | 自動で直す |
 
+**本体と拡張機能**
+Prettier にも、npm で入れる**本体**と、VS Code の**拡張機能**「Prettier - Code formatter」があります。ESLint と違い、拡張機能の中にも Prettier が入っていますが、プロジェクトに本体（`node_modules` の中）があれば、拡張機能はそちらを使います。くわしくは [本体（npm）と拡張機能の関係](#本体npmと拡張機能の関係)。
+
 **関係するファイル**
 
 | ファイル | 中身 |
@@ -249,6 +316,34 @@ Vite が作った `.gitignore` には `.vscode/*`（.vscode フォルダを Git 
 | Prettier - Code formatter | 保存したときの自動整形に使う。**入っていないと、保存しても整形されない** |
 | ESLint | ESLint の指摘を、エディターの中で波線で表示する（`npm run lint` を実行しなくても分かる） |
 | GitHub Pull Requests | VS Code から PR を出したり見たりする（Phase 0 で導入） |
+
+### 本体（npm）と拡張機能の関係
+
+ESLint と Prettier は、**本体**と**拡張機能**の2つの部品でできています。
+
+| 部品 | 入れ方 | 役割 |
+| --- | --- | --- |
+| 本体 | `npm install`（`node_modules/` に入る） | チェックや整形をする本人。`npm run lint`・`npm run format` と CI はこれを使う |
+| 拡張機能 | VS Code の「拡張機能」で検索して入れる | VS Code の中で、書いている最中に本体の結果を見せたり、保存したときに整えたりする |
+
+**片方だけだと、どうなるか**
+
+| | 本体だけ | 拡張機能だけ |
+| --- | --- | --- |
+| ESLint | **使える**（コマンドを打てばチェックできる） | **使えない**（拡張機能の中に本体がないので、何も表示されない） |
+| Prettier | **使える**（コマンドを打てば整形できる） | **一応使える**。ただし拡張機能に入っている Prettier は、プロジェクトで固定したバージョンと違うことがある。整え方がずれると、自分の PC では整っているのに CI の `format:check` だけ赤になる |
+
+CI（GitHub Actions）には VS Code がないので、本体だけで動いています。
+
+**なぜ拡張機能も入れるのか**
+本体だけでも開発はできます。ただ、ミスに気づくのが「コマンドを打ったとき」か「push して CI が赤になったとき」になります。拡張機能を入れると、書いているその場で気づいて直せるので、CI で落ちて直して push し直す手間が減ります。
+
+| | 役割 |
+| --- | --- |
+| CI（本体） | 最後の関所。ルールを守っていない PR をマージさせない |
+| 拡張機能 | 関所に着く前に教えてくれる案内係 |
+
+なので、`npm install` で本体を入れたうえで、拡張機能も入れます。
 
 **改行コード（CRLF と LF）**
 行の終わりを表す見えない文字には、Windows 式の **CRLF** と、Mac・Linux 式の **LF** があります。Prettier は LF にそろえます。Windows の VS Code で新しく作ったファイルは CRLF になることがあり、拡張機能「Prettier - Code formatter」が入っていないと保存しても直らず、`npm run format:check` で `[warn]` が出ます。
@@ -406,6 +501,14 @@ mini-games の protect-main で「Require status checks to pass」をオンに�
 
 **何をするものか**
 GitHub が無料で用意している、Web サイトの置き場所です。`https://Organization名.github.io/リポジトリ名/` の URL でサイトを公開できます。mini-games は https://kyoto-dev-circle.github.io/mini-games/ で公開しています。
+
+無料で使えるサーバーですが、できるのは**ファイルを置いて見せること**だけです。
+
+| できること | できないこと |
+| --- | --- |
+| HTML・CSS・JavaScript・画像を置いて、だれでも URL で見られるようにする | サーバーの上でプログラムを動かす（Python を動かす、データベースに保存する、ログインした人の情報を管理するなど） |
+
+ミニゲームは、遊ぶ人のブラウザの中ですべて動くので、GitHub Pages で足ります。オンラインランキングのように、みんなのデータを1か所に保存したいときは、別のサービス（Phase 1 では Supabase の予定）を組み合わせます。無料プランでは、Public のリポジトリでだけ使えます。
 
 **なぜ入れたか**
 main にマージするたびに、手を動かさなくても最新のサイトが公開されるようにするため（CD）。公開の作業を GitHub Actions に任せるので、公開し忘れや、手元の古いファイルを公開してしまうことがなくなる。
