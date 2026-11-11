@@ -16,6 +16,7 @@ Kyoto Dev Circle で使っているツール・ライブラリ・設定の説明
 | [ESLint](#eslint) | バグになりやすい書き方を指摘する | mini-games #2 |
 | [Prettier](#prettier) | コードの見た目を自動でそろえる | mini-games #2 |
 | [VS Code の設定と拡張機能](#vs-code-の設定と拡張機能) | 保存したときの自動整形、エラーの表示 | mini-games #2 |
+| [Vitest](#vitest) | ロジックが正しく動くかを自動で確かめる（単体テスト） | mini-games #3 |
 
 ---
 
@@ -243,8 +244,80 @@ Vite が作った `.gitignore` には `.vscode/*`（.vscode フォルダを Git 
 
 | 拡張機能 | 役割 |
 | --- | --- |
-| Prettier - Code formatter | 保存したときの自動整形に使う |
+| Prettier - Code formatter | 保存したときの自動整形に使う。**入っていないと、保存しても整形されない** |
 | ESLint | ESLint の指摘を、エディターの中で波線で表示する（`npm run lint` を実行しなくても分かる） |
 | GitHub Pull Requests | VS Code から PR を出したり見たりする（Phase 0 で導入） |
 
+**改行コード（CRLF と LF）**
+行の終わりを表す見えない文字には、Windows 式の **CRLF** と、Mac・Linux 式の **LF** があります。Prettier は LF にそろえます。Windows の VS Code で新しく作ったファイルは CRLF になることがあり、拡張機能「Prettier - Code formatter」が入っていないと保存しても直らず、`npm run format:check` で `[warn]` が出ます。
+
+- 直し方：`npm run format` を実行する。または VS Code の右下の `CRLF` を押して `LF` を選ぶ
+- 防ぎ方：拡張機能「Prettier - Code formatter」を入れておく（保存したときに LF に直る）
+
 **最初に使った場所**：mini-games #2
+
+---
+
+## Vitest
+
+**何をするものか**
+読み方は「ヴィーテスト」。**テスト**（プログラムが正しく動くかを確かめるプログラム）を実行するツールです。「この関数に 1 と 2 を渡したら 3 が返るはず」のような確かめ方をコードで書いておくと、コマンド1つで全部まとめて確かめられます。関数1つずつを確かめるテストを**単体テスト**（ユニットテスト）といいます。
+
+**なぜ入れたか**
+ゲームのルール（logic.js）を変えたときに、前は動いていたところが壊れていないかを、毎回手で遊ばずに確かめるため。#4 の CI でも PR ごとに実行する。Vite と同じ仲間のツールなので、`vite.config.js` をそのまま読み込み、追加の設定なしで動く。
+
+**関係するファイル**
+
+| ファイル | 中身 |
+| --- | --- |
+| `package.json` | scripts の `test`（`vitest run`）と `test:watch`（`vitest`） |
+| `〇〇.test.js` | テストファイル。テストするファイルと同じフォルダに置く（例：`games/janken/logic.js` のテストは `games/janken/logic.test.js`）。名前が `.test.js` で終わるファイルを、Vitest が自動で見つけて実行する |
+| `src/lib/sample.js`、`src/lib/sample.test.js` | 書き方の見本（#8 で本物のテストができたら消す） |
+
+**テストの書き方**
+
+```js
+import { describe, test, expect } from 'vitest';
+import { add } from './sample.js';
+
+describe('add', () => {
+  test('1 と 2 を足すと 3 になる', () => {
+    expect(add(1, 2)).toBe(3);
+  });
+});
+```
+
+| 書き方 | 意味 |
+| --- | --- |
+| `describe('名前', () => { ... })` | テストをまとめる箱（グループ） |
+| `test('説明', () => { ... })` | テスト1個。説明は失敗したときに表示される |
+| `expect(実際の値).toBe(期待する値)` | 2つが同じかを確かめる |
+| `expect(実際の値).toBeCloseTo(期待する値)` | 小数を比べるときに使う。`0.1 + 0.2` はコンピュータの中では `0.30000000000000004` になり、`toBe(0.3)` だと失敗するため |
+
+テストしやすくするため、テストする関数には画面の処理（`document` や `window`）を書かず、入力を受け取って結果を返すだけにします（mini-games の README の「logic.js には画面の処理を書かない」）。
+
+**よく使うコマンド**
+
+| コマンド | 意味 |
+| --- | --- |
+| `npm test` | テストを1回だけ実行して終わる。PR を出す前と CI ではこちら。`test` だけは `run` を付けずに打てる |
+| `npm run test:watch` | 終わらずに待ち、ファイルを保存するたびにテストを実行し直す。テストを書いている最中に使う。止めるときは `q` か **Ctrl + C** |
+
+`test:watch`（`vitest`）は終わらずに待ち続けるので、CI では使えません。CI で `test`（`vitest run`）を使うのはそのためです。
+
+**失敗したときの読み方**
+
+```
+ FAIL  src/lib/sample.test.js > add > 1 と 2 を足すと 3 になる   ← どのファイルの、どのテストか
+AssertionError: expected 3 to be 4
+
+- Expected     ← 期待した値
++ Received     ← 実際の値
+
+- 4
++ 3
+
+ ❯ src/lib/sample.test.js:6:23   ← 6行目の23文字目
+```
+
+**最初に使った場所**：mini-games #3（バージョン 5.1.0）
