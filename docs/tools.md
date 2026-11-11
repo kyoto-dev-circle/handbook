@@ -18,6 +18,7 @@ Kyoto Dev Circle で使っているツール・ライブラリ・設定の説明
 | [VS Code の設定と拡張機能](#vs-code-の設定と拡張機能) | 保存したときの自動整形、エラーの表示 | mini-games #2 |
 | [Vitest](#vitest) | ロジックが正しく動くかを自動で確かめる（単体テスト） | mini-games #3 |
 | [GitHub Actions](#github-actions) | PR ごとに lint・テスト・ビルドを GitHub 上で自動で実行する（CI） | mini-games #4 |
+| [GitHub Pages](#github-pages) | main にマージすると、サイトを自動で公開する（CD） | mini-games #5 |
 
 ---
 
@@ -338,7 +339,7 @@ AssertionError: expected 3 to be 4
 GitHub が用意したパソコン（Linux）で、決めておいたコマンドを自動で実行してくれる仕組みです。「PR が出されたとき」「main に push されたとき」などのきっかけを決めて、その手順を YAML ファイルに書きます。
 
 - **CI**（継続的インテグレーション）：PR を出すたびに、lint・テストなどを自動で実行して、壊れていないかを確かめること
-- **CD**（継続的デリバリー）：main にマージするたびに、自動で公開すること（mini-games #5 で作る）
+- **CD**（継続的デリバリー）：main にマージするたびに、自動で公開すること（[GitHub Pages](#github-pages) の章）
 
 **なぜ入れたか**
 手元でチェックを打ち忘れても、PR の時点で必ず同じチェックが走るようにするため。チェックが失敗した PR は、ルールセットの設定でマージできなくしている。
@@ -398,3 +399,101 @@ YAML は字下げ（半角スペース2つ）で入れ子を表します。字�
 mini-games の protect-main で「Require status checks to pass」をオンにし、`check` を必須にしています。`check` が成功していない PR は、Approve があってもマージできません。チェックの名前は、ワークフローが一度動いた後でないと選べません。
 
 **最初に使った場所**：mini-games #4（actions/checkout v7、actions/setup-node v7、Node.js 26）
+
+---
+
+## GitHub Pages
+
+**何をするものか**
+GitHub が無料で用意している、Web サイトの置き場所です。`https://Organization名.github.io/リポジトリ名/` の URL でサイトを公開できます。mini-games は https://kyoto-dev-circle.github.io/mini-games/ で公開しています。
+
+**なぜ入れたか**
+main にマージするたびに、手を動かさなくても最新のサイトが公開されるようにするため（CD）。公開の作業を GitHub Actions に任せるので、公開し忘れや、手元の古いファイルを公開してしまうことがなくなる。
+
+**設定**：リポジトリの Settings →「Pages」→「Build and deployment」の Source を「GitHub Actions」にする。
+
+**関係するファイル**：`.github/workflows/deploy.yml`、`vite.config.js`（`base`）
+
+```yaml
+# CD：main に push されたとき（PR をマージしたとき）に、ビルドして GitHub Pages に公開する
+name: Deploy
+
+on:
+  # main に push されたときに動く。PR のときは動かない（PR のチェックは ci.yml）
+  push:
+    branches: [main]
+  # 「Actions」タブのボタンから手で動かせるようにする（やり直したいとき用）
+  workflow_dispatch:
+
+# GitHub Pages に公開するために必要な権限
+permissions:
+  # リポジトリの中身を読む
+  contents: read
+  # Pages に公開する
+  pages: write
+  # 公開する人が本当にこのリポジトリのワークフローかを、GitHub に証明する
+  id-token: write
+
+# 公開が2つ同時に動かないようにする（続けてマージしたら、順番に公開する）
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  # 1つ目の仕事：ビルドして、できた dist/ を Pages 用にアップロードする
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # リポジトリのファイルを取ってくる
+      - uses: actions/checkout@v7
+      # Node.js を準備する（ci.yml と同じ）
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+      # package-lock.json のとおりにインストールする
+      - run: npm ci
+      # 公開用のファイルを dist/ に作る
+      - run: npm run build
+      # dist/ を Pages 用にまとめてアップロードする
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  # 2つ目の仕事：アップロードしたものを公開する
+  deploy:
+    # build が成功してから動く
+    needs: build
+    runs-on: ubuntu-latest
+    # 「Environments」の github-pages に、公開の記録と URL を残す
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
+```
+
+| 書き方 | 意味 |
+| --- | --- |
+| `on: push` と `branches: [main]` | main に push されたとき（PR をマージしたとき）に動く。PR のときは動かない |
+| `workflow_dispatch:` | 「Actions」タブの「Run workflow」ボタンから、手で動かせるようにする |
+| `permissions:` | このワークフローに許す権限。Pages に公開するには `pages: write` と `id-token: write` が必要 |
+| `concurrency:` | 同じ `group` のワークフローを同時に動かさない。続けてマージしても、公開は順番に行われる |
+| `jobs:` の下の `build` と `deploy` | 2つのジョブ。`build` でビルドしてアップロードし、`deploy` で公開する |
+| `needs: build` | `build` が成功してから `deploy` を動かす |
+| `actions/upload-pages-artifact` | `path` に書いたフォルダ（`dist`）を、Pages 用にまとめてアップロードする |
+| `actions/deploy-pages` | アップロードしたものを公開する |
+| `environment:` の `github-pages` | 公開の記録を残す場所。リポジトリのトップの右側「Deployments」に、公開の履歴と URL が出る |
+
+**Vite の `base` との関係**
+公開 URL はドメインの直下ではなく `/mini-games/` の下になります。`vite.config.js` に `base: '/mini-games/'` と書いておかないと、ビルドした HTML が CSS や JS をドメインの直下に探しにいき、読み込めません（真っ白なページになる）。
+
+**結果の見方**
+
+- main にマージすると、「Actions」タブに「Deploy」が出る。build と deploy の両方が緑のチェックになれば公開済み（1〜2分）
+- Deploy は PR の画面には出ない（PR のときは動かないため）
+- サイトが変わっていないように見えるときは、`Ctrl + Shift + R` で、ブラウザに残っている古いファイルを使わずに読み直す
+- 真っ白なページや 404 になったときは、Deploy のログ、Pages の Source が「GitHub Actions」か、`base` を確かめる
+
+**最初に使った場所**：mini-games #5（actions/upload-pages-artifact v5、actions/deploy-pages v5）
