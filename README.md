@@ -6,6 +6,7 @@ Kyoto Dev Circle の知識のまとめです。Phase に関係なく使い続け
 
 | ファイル | 中身 |
 | --- | --- |
+| [docs/git-basics.md](docs/git-basics.md) | Git・GitHub のしくみ（commit・push・PR の違いなど） |
 | [docs/tools.md](docs/tools.md) | 使っているツール・ライブラリ・設定の説明 |
 
 ## ほかの資料
