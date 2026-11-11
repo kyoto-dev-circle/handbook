@@ -255,7 +255,7 @@ Vite が作った `.gitignore` には `.vscode/*`（.vscode フォルダを Git 
 - 直し方：`npm run format` を実行する。または VS Code の右下の `CRLF` を押して `LF` を選ぶ
 - 防ぎ方：拡張機能「Prettier - Code formatter」を入れておく（保存したときに LF に直る）
 
-clone や pull をしただけで、ほとんど全部のファイルに `[warn]` が出るときは、Git が取り出すときに CRLF に変えています（Git for Windows の設定 `core.autocrlf` が `true`）。mini-games #4 でノートPC に起きました。
+clone や pull をしただけで、ほとんど全部のファイルに `[warn]` が出るときは、Git が取り出すときに CRLF に変えています（Git for Windows の設定 `core.autocrlf` が `true`）。
 
 1. 確かめる：`git ls-files --eol src/main.js` で `w/crlf`（手元が CRLF）と出る
 2. Git の設定を変える：`git config --global core.autocrlf input`（取り出すときに CRLF に変えない）
@@ -396,11 +396,5 @@ YAML は字下げ（半角スペース2つ）で入れ子を表します。字�
 
 **ルールセットとの関係**
 mini-games の protect-main で「Require status checks to pass」をオンにし、`check` を必須にしています。`check` が成功していない PR は、Approve があってもマージできません。チェックの名前は、ワークフローが一度動いた後でないと選べません。
-
-**つまずいたこと（mini-games #4）**
-
-- 間違った名前（`feature`）でブランチを作ってしまった。そのブランチにいる状態で `git branch -m feature/#4-ci` を打つと名前を変えられる（VS Code ではコマンドパレットの「Git: ブランチの名前変更...」）
-- ノートPC で、ほとんど全部のファイルが `format:check` で引っかかった。原因は改行コード（上の「VS Code の設定と拡張機能」の改行コード）
-- Approve の後に新しいコミットを push すると、承認が取り消される（ルールセットの設定）。もう一度 Approve してもらう
 
 **最初に使った場所**：mini-games #4（actions/checkout v7、actions/setup-node v7、Node.js 26）
